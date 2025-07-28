@@ -83,19 +83,32 @@ jobs:
           libasound2-dev \
           libgtk-3-dev
 
-    - name: Package application
-      run: npm run dist:${{ matrix.platform }}
+    - name: Package application (Windows)
+      if: matrix.platform == 'win'
+      run: npm run dist:win
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Disable code signing auto-discovery by default (enable only when certificates are provided)
         CSC_IDENTITY_AUTO_DISCOVERY: false
-        # Code signing variables (only set if secrets exist)
-        CSC_LINK: ${{ (matrix.platform == 'win' && secrets.WINDOWS_CERTIFICATE) || (matrix.platform == 'mac' && secrets.MAC_CERTIFICATE) || '' }}
-        CSC_KEY_PASSWORD: ${{ (matrix.platform == 'win' && secrets.WINDOWS_CERTIFICATE_PASSWORD) || (matrix.platform == 'mac' && secrets.MAC_CERTIFICATE_PASSWORD) || '' }}
-        # macOS-specific notarization (only set if secrets exist)
-        APPLE_ID: ${{ matrix.platform == 'mac' && secrets.APPLE_ID || '' }}
-        APPLE_ID_PASS: ${{ matrix.platform == 'mac' && secrets.APPLE_ID_PASS || '' }}
-        APPLE_TEAM_ID: ${{ matrix.platform == 'mac' && secrets.APPLE_TEAM_ID || '' }}
+        CSC_LINK: ${{ secrets.WINDOWS_CERTIFICATE }}
+        CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+    - name: Package application (macOS)
+      if: matrix.platform == 'mac'
+      run: npm run dist:mac
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+        CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
+        CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_ID_PASS: ${{ secrets.APPLE_ID_PASS }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+    - name: Package application (Linux)
+      if: matrix.platform == 'linux'
+      run: npm run dist:linux
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4

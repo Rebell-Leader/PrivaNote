@@ -1,6 +1,21 @@
 # PrivaNote MVP
+![PrivaNote Logo Placeholder](images/privanote_logo.png)
 
 A cross-platform, privacy-focused AI meeting assistant built with Electron, leveraging local AI models for complete data privacy.
+
+## Table of Contents
+
+*   [About PrivaNote](#about-privanote)
+*   [Features](#features)
+*   [Why PrivaNote?](#why-privanote)
+*   [Use Cases](#use-cases)
+*   [Technology Stack](#technology-stack)
+*   [Installation](#installation)
+*   [Usage](#usage)
+*   [Contributing](#contributing)
+*   [License](#license)
+*   [Roadmap](#roadmap)
+*   [Contact](#contact)
 
 ## Features
 
@@ -10,6 +25,16 @@ A cross-platform, privacy-focused AI meeting assistant built with Electron, leve
 - **Real-time Recording**: Capture system audio and microphone simultaneously
 - **AI-Powered Analysis**: Automatic generation of summaries, action items, and key decisions
 - **Markdown Export**: Export meeting notes in Markdown format
+
+## Why PrivaNote?
+
+In an era where digital privacy is paramount, many AI meeting assistants compromise data security by sending your sensitive conversations to cloud servers for processing. PrivaNote offers a fundamentally different approach:
+
+*   **Uncompromised Privacy:** Your meeting data never leaves your device. All transcription and AI processing are performed locally, giving you complete control and peace of mind.
+*   **Cost-Effective:** By leveraging local, open-source models, PrivaNote eliminates the recurring subscription fees associated with cloud-based AI services.
+*   **Open Source Transparency:** The entire codebase is open and auditable, fostering trust and allowing the community to contribute to its development and ensure its security.
+*   **Tailored for Professionals:** Designed to meet the demanding needs of founders, recruiters, sales professionals, investors, and managers, helping them to focus on conversations and make data-driven decisions.
+*   **Future-Proof:** Built on a flexible architecture that allows for easy integration of new local AI models and advanced features as they emerge.
 
 ## Development Setup
 

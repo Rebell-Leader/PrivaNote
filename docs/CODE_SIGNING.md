@@ -2,7 +2,11 @@
 
 This document explains how to set up code signing for the PrivaNote application across different platforms.
 
-## Required GitHub Secrets
+## Quick Start (No Code Signing)
+
+If you want to build unsigned applications for development/testing, **you don't need to set up any secrets**. The CI will automatically build unsigned binaries that work perfectly for development.
+
+## Required GitHub Secrets (Optional - For Production Releases)
 
 ### Windows Code Signing
 
@@ -11,20 +15,23 @@ This document explains how to set up code signing for the PrivaNote application 
 
 #### How to obtain Windows certificates:
 - Purchase a code signing certificate from a trusted CA (DigiCert, Sectigo, etc.)
-- Convert to base64: `base64 -i certificate.p12 | pbcopy` (macOS) or `certutil -encode certificate.p12 certificate.txt` (Windows)
+- Convert to base64:
+  - macOS/Linux: `base64 -i certificate.p12 | pbcopy`
+  - Windows: `certutil -encode certificate.p12 certificate.txt` then copy the content between the header/footer lines
 
 ### macOS Code Signing and Notarization
 
 1. **APPLE_ID**: Your Apple ID email
 2. **APPLE_ID_PASS**: App-specific password for your Apple ID
-3. **APPLE_TEAM_ID**: Your Apple Developer Team ID
+3. **APPLE_TEAM_ID**: Your Apple Developer Team ID (found in Apple Developer portal)
 4. **MAC_CERTIFICATE**: Base64-encoded .p12 certificate file
 5. **MAC_CERTIFICATE_PASSWORD**: Password for the certificate
 
 #### How to obtain macOS certificates:
-- Enroll in Apple Developer Program
-- Create certificates in Apple Developer portal
-- Export from Keychain Access as .p12 file
+- Enroll in Apple Developer Program ($99/year)
+- Create "Developer ID Application" certificate in Apple Developer portal
+- Download and install in Keychain Access
+- Export from Keychain Access as .p12 file (right-click → Export)
 - Convert to base64: `base64 -i certificate.p12 | pbcopy`
 
 #### How to create app-specific password:
@@ -32,13 +39,26 @@ This document explains how to set up code signing for the PrivaNote application 
 2. Sign in with your Apple ID
 3. Go to "App-Specific Passwords"
 4. Generate a new password for "GitHub Actions"
+5. Copy the generated password (not your regular Apple ID password)
 
 ## Setting up GitHub Secrets
 
 1. Go to your repository on GitHub
-2. Navigate to Settings → Secrets and variables → Actions
-3. Click "New repository secret"
-4. Add each secret with the exact names listed above
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **"New repository secret"**
+4. Add each secret with the **exact names** listed above
+
+### Important Notes:
+- Secret names are case-sensitive
+- Don't include any extra spaces or characters
+- For base64 certificates, copy the entire encoded string without line breaks
+- Test with one platform first before setting up all certificates
+
+## Current CI Behavior
+
+- **Without secrets**: Builds unsigned applications (works for development)
+- **With secrets**: Builds signed applications (required for distribution)
+- The CI automatically detects if secrets are present and enables signing accordingly
 
 ## Testing Code Signing
 

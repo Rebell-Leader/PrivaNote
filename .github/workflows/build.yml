@@ -81,8 +81,7 @@ jobs:
           libgbm-dev \
           libxss1 \
           libasound2-dev \
-          libgtk-3-dev \
-          libgconf-2-4
+          libgtk-3-dev
 
     - name: Package application
       run: npm run dist:${{ matrix.platform }}

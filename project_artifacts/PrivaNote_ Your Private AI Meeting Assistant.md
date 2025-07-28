@@ -1,63 +1,60 @@
-# PrivaNote MVP
+# PrivaNote: Your Private AI Meeting Assistant
 
-A cross-platform, privacy-focused AI meeting assistant built with Electron, leveraging local AI models for complete data privacy.
+![PrivaNote Logo Placeholder](images/privanote_logo.png)
+
+## Table of Contents
+
+*   [About PrivaNote](#about-privanote)
+*   [Features](#features)
+*   [Why PrivaNote?](#why-privanote)
+*   [Use Cases](#use-cases)
+*   [Technology Stack](#technology-stack)
+*   [Installation](#installation)
+*   [Usage](#usage)
+*   [Contributing](#contributing)
+*   [License](#license)
+*   [Roadmap](#roadmap)
+*   [Contact](#contact)
+
+## About PrivaNote
+
+PrivaNote is a cross-platform, open-source AI meeting assistant designed for privacy-conscious professionals and teams. It leverages cutting-edge local AI models, including Google's Gemma 3n e4b and Whisper.cpp, to provide intelligent transcription, summarization, and structured note-taking directly on your device. With PrivaNote, your sensitive meeting data never leaves your computer, ensuring unparalleled security and control.
+
+
+
 
 ## Features
 
-- **Local Processing**: All audio transcription and AI analysis happens locally using Whisper.cpp and Gemma 3n e4b
-- **Cross-Platform**: Runs on Windows, macOS, and Linux
-- **Privacy-First**: No data ever leaves your device
-- **Real-time Recording**: Capture system audio and microphone simultaneously
-- **AI-Powered Analysis**: Automatic generation of summaries, action items, and key decisions
-- **Markdown Export**: Export meeting notes in Markdown format
+*   **Local Audio Capture:** Seamlessly records audio from your system (e.g., virtual meeting platforms) and microphone, ensuring comprehensive capture of discussions.
+*   **Private Speech-to-Text:** Utilizes `whisper.cpp` for highly accurate and efficient transcription of all recorded audio, performed entirely on your local machine.
+*   **Intelligent Summarization:** Powered by Google's Gemma 3n e4b, PrivaNote generates concise and coherent summaries of your meetings, highlighting key discussion points.
+*   **Automated Action Item & Decision Extraction:** Gemma 3n e4b intelligently identifies and extracts actionable tasks and crucial decisions made during your meetings, helping you stay organized and accountable.
+*   **Structured Note-Taking:** Transforms raw transcripts into organized, readable notes, making it easy to review and share important information.
+*   **Markdown Export:** Export your complete meeting notes, including raw transcripts, summaries, action items, and decisions, into a clean, portable Markdown (`.md`) file format.
+*   **Cross-Platform Compatibility:** Available as a desktop application for Windows, macOS, and Linux, providing a consistent experience across your preferred operating system.
+*   **100% Local Data Processing:** All audio processing, transcription, and AI model inference occur directly on your device, guaranteeing that your sensitive meeting data remains private and secure.
 
-## Development Setup
 
-### Prerequisites
 
-- Node.js (v18 or higher)
-- npm or yarn
-- Git
 
-### Installation
+## Why PrivaNote?
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd privanote-mvp
-```
+In an era where digital privacy is paramount, many AI meeting assistants compromise data security by sending your sensitive conversations to cloud servers for processing. PrivaNote offers a fundamentally different approach:
 
-2. Install dependencies:
-```bash
-npm install
-```
+*   **Uncompromised Privacy:** Your meeting data never leaves your device. All transcription and AI processing are performed locally, giving you complete control and peace of mind.
+*   **Cost-Effective:** By leveraging local, open-source models, PrivaNote eliminates the recurring subscription fees associated with cloud-based AI services.
+*   **Open Source Transparency:** The entire codebase is open and auditable, fostering trust and allowing the community to contribute to its development and ensure its security.
+*   **Tailored for Professionals:** Designed to meet the demanding needs of founders, recruiters, sales professionals, investors, and managers, helping them to focus on conversations and make data-driven decisions.
+*   **Future-Proof:** Built on a flexible architecture that allows for easy integration of new local AI models and advanced features as they emerge.
 
-3. Build the application:
-```bash
-npm run build
-```
 
-### Development Commands
 
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production
-- `npm start` - Start the built application
-- `npm run pack` - Create unpacked distribution
-- `npm run dist` - Create distribution packages
-- `npm run dist:win` - Create Windows installer
-- `npm run dist:mac` - Create macOS installer
-- `npm run dist:linux` - Create Linux installer
 
-## Project Structure
+## Use Cases
 
-```
-src/
-├── main/           # Electron main process
-│   ├── main.ts     # Main application entry point
-│   └── preload.ts  # Preload script for secure IPC
-└── renderer/       # Electron renderer process
-    ├── index.tsx   # React application entry point
-    ├──or Founders:** Streamline investor updates, track product development discussions, and manage team meetings with automated summaries and action items, allowing you to focus on strategic growth.
+PrivaNote is built to empower a wide range of professionals, helping them to maximize productivity and ensure no critical information is lost from their meetings:
+
+*   **For Founders:** Streamline investor updates, track product development discussions, and manage team meetings with automated summaries and action items, allowing you to focus on strategic growth.
 *   **For Recruiters:** Capture detailed interview notes, identify key candidate qualifications, and automate follow-up communications, enabling more informed and efficient hiring decisions.
 *   **For Sales Professionals:** Analyze sales calls to identify buying signals, anticipate objections, and generate personalized follow-up emails, helping you close more deals faster.
 *   **For Investors:** Keep track of every deal discussion, recall critical points from due diligence calls, and make data-driven investment decisions with comprehensive, searchable meeting insights.
@@ -84,7 +81,7 @@ PrivaNote is built with a robust and modern technology stack to ensure cross-pla
 
 Detailed installation instructions will be provided upon the first release. In the meantime, here's a general overview:
 
-1.  **Download the latest release:** Visit our [GitHub Releases page](https://github.com/Rebell-Leader/PrivaNote/releases) and download the appropriate installer for your operating system (Windows, macOS, or Linux).
+1.  **Download the latest release:** Visit our [GitHub Releases page](https://github.com/your-repo/privanote/releases) and download the appropriate installer for your operating system (Windows, macOS, or Linux).
 2.  **Run the installer:** Follow the on-screen instructions to install PrivaNote.
 3.  **Model Download:** Upon first launch, PrivaNote will guide you through downloading the necessary `whisper.cpp` and Gemma 3n e4b models. Ensure you have an active internet connection for this initial setup.
 
@@ -140,4 +137,7 @@ Our vision for PrivaNote extends beyond the MVP. Here are some key areas for fut
 
 ## Contact
 
-For questions, feedback, or support, please open an issue on our [GitHub repository](https://github.com/Rebell-Leader/PrivaNote/issues) or join our community on [Discord](https://discord.gg/your-discord-invite).
+For questions, feedback, or support, please open an issue on our [GitHub repository](https://github.com/your-repo/privanote/issues) or join our community on [Discord](https://discord.gg/your-discord-invite).
+
+
+

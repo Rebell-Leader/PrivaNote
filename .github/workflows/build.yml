@@ -87,10 +87,12 @@ jobs:
       run: npm run dist:${{ matrix.platform }}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Code signing variables (conditional based on platform)
+        # Disable code signing auto-discovery by default (enable only when certificates are provided)
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+        # Code signing variables (only set if secrets exist)
         CSC_LINK: ${{ (matrix.platform == 'win' && secrets.WINDOWS_CERTIFICATE) || (matrix.platform == 'mac' && secrets.MAC_CERTIFICATE) || '' }}
         CSC_KEY_PASSWORD: ${{ (matrix.platform == 'win' && secrets.WINDOWS_CERTIFICATE_PASSWORD) || (matrix.platform == 'mac' && secrets.MAC_CERTIFICATE_PASSWORD) || '' }}
-        # macOS-specific notarization
+        # macOS-specific notarization (only set if secrets exist)
         APPLE_ID: ${{ matrix.platform == 'mac' && secrets.APPLE_ID || '' }}
         APPLE_ID_PASS: ${{ matrix.platform == 'mac' && secrets.APPLE_ID_PASS || '' }}
         APPLE_TEAM_ID: ${{ matrix.platform == 'mac' && secrets.APPLE_TEAM_ID || '' }}

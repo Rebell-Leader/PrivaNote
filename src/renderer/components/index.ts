@@ -5,3 +5,6 @@ export { default as RecordingControls } from './RecordingControls';
 export { default as ProgressIndicator } from './ProgressIndicator';
 export { default as ResultsSection } from './ResultsSection';
 export { default as TitleBar } from './TitleBar';
+export { default as AudioLevelIndicator } from './AudioLevelIndicator';
+export { default as PermissionsDialog } from './PermissionsDialog';
+export { default as AudioSourceSelector } from './AudioSourceSelector';

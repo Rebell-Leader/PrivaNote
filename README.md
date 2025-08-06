@@ -36,16 +36,60 @@
 #### Prerequisites
 - Python 3.11 or 3.12 (Python 3.13 is not supported due to the removal of the `audioop` module)
 - Git
+- FFmpeg (required for audio processing)
 
 #### Installation Steps
 
-1. **Clone the repository**
+1. **Install FFmpeg** (required for audio processing)
+
+   **Linux (Ubuntu/Debian):**
+   ```bash
+   sudo apt update
+   sudo apt install ffmpeg
+   ```
+
+   **Linux (CentOS/RHEL/Fedora):**
+   ```bash
+   # For CentOS/RHEL
+   sudo yum install ffmpeg
+   
+   # For Fedora
+   sudo dnf install ffmpeg
+   ```
+
+   **macOS:**
+   ```bash
+   # Using Homebrew
+   brew install ffmpeg
+   
+   # Using MacPorts
+   sudo port install ffmpeg
+   ```
+
+   **Windows:**
+   ```bash
+   # Using Chocolatey
+   choco install ffmpeg
+   
+   # Using Winget
+   winget install ffmpeg
+   ```
+   
+   Or download manually from https://ffmpeg.org/download.html and add to PATH.
+
+   **Verify installation:**
+   ```bash
+   ffmpeg -version
+   ffprobe -version
+   ```
+
+2. **Clone the repository**
    ```bash
    git clone https://github.com/Rebell-Leader/PrivaNote.git
    cd PrivaNote
    ```
 
-2. **Install dependencies**
+3. **Install dependencies**
 
    **Using uv (recommended):**
    ```bash
@@ -58,12 +102,12 @@
    pip install streamlit>=1.48.0 faster-whisper>=1.2.0 openai>=1.99.1 ollama>=0.5.2 pandas>=2.3.1 pydub>=0.25.1 torch>=2.8.0 torchaudio>=2.8.0
    ```
 
-3. **Run the application**
+4. **Run the application**
    ```bash
    streamlit run app.py --server.port 5000
    ```
 
-4. **Open your browser** to `http://localhost:5000`
+5. **Open your browser** to `http://localhost:5000`
 
 #### 🏠 For Maximum Privacy: Local Ollama Setup
 

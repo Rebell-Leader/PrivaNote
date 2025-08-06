@@ -1,5 +1,6 @@
 import os
 import tempfile
+import subprocess
 from faster_whisper import WhisperModel
 import streamlit as st
 
@@ -12,23 +13,79 @@ class TranscriptionService:
         self._initialize_model()
     
     def _initialize_model(self):
-        """Initialize the Whisper model"""
+        """Initialize the Whisper model with automatic device/compute type detection"""
+        # Try different configurations in order of preference
+        configurations = self._get_device_configurations()
+        
+        for config in configurations:
+            try:
+                device = config['device']
+                compute_type = config['compute_type']
+                
+                st.info(f"Trying Whisper model: {self.model_size} on {device} with {compute_type}")
+                
+                # Initialize model with current configuration
+                self.model = WhisperModel(
+                    self.model_size, 
+                    device=device, 
+                    compute_type=compute_type,
+                    download_root=None  # Use default cache directory
+                )
+                
+                st.success(f"Successfully initialized Whisper model on {device} with {compute_type}")
+                return
+                
+            except Exception as e:
+                st.warning(f"Failed to initialize on {config['device']} with {config['compute_type']}: {str(e)}")
+                continue
+        
+        # If all configurations failed
+        st.error("Failed to initialize Whisper model with any configuration")
+        self.model = None
+    
+    def _get_device_configurations(self):
+        """Get list of device configurations to try, in order of preference"""
+        configurations = []
+        
+        # Check if CUDA is available
+        cuda_available = self._check_cuda_availability()
+        
+        if cuda_available:
+            # Try CUDA with different compute types
+            configurations.extend([
+                {'device': 'cuda', 'compute_type': 'float16'},
+                {'device': 'cuda', 'compute_type': 'int8'},
+                {'device': 'auto', 'compute_type': 'float16'},
+                {'device': 'auto', 'compute_type': 'int8'}
+            ])
+        
+        # Always add CPU fallbacks (most compatible)
+        configurations.extend([
+            {'device': 'cpu', 'compute_type': 'int8'},
+            {'device': 'cpu', 'compute_type': 'int16'},
+            {'device': 'cpu', 'compute_type': 'float32'}
+        ])
+        
+        return configurations
+    
+    def _check_cuda_availability(self):
+        """Check if CUDA is available without requiring torch"""
         try:
-            # Use CPU for broader compatibility, GPU if available
-            device = "auto"  # Let faster-whisper decide
-            compute_type = "float16" if device != "cpu" else "int8"
-            
-            # Initialize model with caching
-            self.model = WhisperModel(
-                self.model_size, 
-                device=device, 
-                compute_type=compute_type,
-                download_root=None  # Use default cache directory
-            )
-            
-        except Exception as e:
-            st.error(f"Error initializing Whisper model: {str(e)}")
-            self.model = None
+            # Try importing torch to check CUDA
+            import torch
+            return torch.cuda.is_available()
+        except ImportError:
+            # If torch is not available, check for nvidia-smi or other indicators
+            try:
+                import subprocess
+                result = subprocess.run(['nvidia-smi'], capture_output=True, text=True, timeout=5)
+                return result.returncode == 0
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+                # No CUDA detected
+                return False
+        except Exception:
+            # Any other error, assume no CUDA
+            return False
     
     def transcribe(self, audio_path, language=None):
         """

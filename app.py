@@ -3,7 +3,6 @@ import os
 import tempfile
 import time
 from datetime import datetime
-import pandas as pd
 
 from utils.audio_processor import AudioProcessor
 from utils.transcription import TranscriptionService
@@ -739,7 +738,7 @@ def process_meeting(uploaded_file, title, date, notes):
         if 'temp_path' in locals() and temp_path:
             try:
                 os.unlink(temp_path)
-            except:
+            except Exception:
                 pass
 
 def display_meeting_results(meeting_data):
@@ -827,7 +826,7 @@ def meeting_archive_tab():
             with col2:
                 st.metric("Date", meeting['date'])
             with col3:
-                if st.button(f"🗑️ Delete", key=f"del_{meeting['id']}"):
+                if st.button("🗑️ Delete", key=f"del_{meeting['id']}"):
                     services['storage'].delete_meeting(meeting['id'])
                     st.rerun()
             
@@ -852,7 +851,7 @@ def meeting_archive_tab():
                 )
             
             with col2:
-                if st.button(f"👁️ View Details", key=f"view_{meeting['id']}"):
+                if st.button("👁️ View Details", key=f"view_{meeting['id']}"):
                     st.session_state.current_meeting = meeting
                     st.rerun()
     

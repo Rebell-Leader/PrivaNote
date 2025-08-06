@@ -1,6 +1,3 @@
-import os
-import tempfile
-import subprocess
 from faster_whisper import WhisperModel
 import streamlit as st
 

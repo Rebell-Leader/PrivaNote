@@ -67,10 +67,18 @@ class AIAnalysisService:
         if not self.lm_studio_client:
             return False
         try:
-            # Test LM Studio connection by calling /v1/models
-            models = self.lm_studio_client.models.list()
-            return len(models.data) > 0
+            # Test LM Studio connection by trying a minimal completion request
+            # This is more reliable than listing models, as a server can be running
+            # without any models loaded.
+            self.lm_studio_client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=1
+            )
+            return True
         except Exception:
+            # If any exception occurs (e.g., connection error, API error), 
+            # assume the service is not available.
             return False
         
     def set_provider(self, provider, model_name=None, lm_studio_config=None):

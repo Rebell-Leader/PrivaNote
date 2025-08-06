@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import tempfile
+import time
 from datetime import datetime
 import pandas as pd
 
@@ -9,6 +10,7 @@ from utils.transcription import TranscriptionService
 from utils.ai_analysis import AIAnalysisService
 from utils.storage import StorageService
 from utils.export import ExportService
+from utils.audio_recorder import AudioRecorder, get_recording_instructions
 
 # Page configuration
 st.set_page_config(
@@ -44,6 +46,10 @@ if 'meetings' not in st.session_state:
     st.session_state.meetings = []
 if 'current_meeting' not in st.session_state:
     st.session_state.current_meeting = None
+if 'audio_recorder' not in st.session_state:
+    st.session_state.audio_recorder = None
+if 'recording_file' not in st.session_state:
+    st.session_state.recording_file = None
 
 def main():
     # Header
@@ -67,7 +73,7 @@ def main():
         st.header("Navigation")
         tab = st.radio(
             "Select Function:",
-            ["📤 Upload & Analyze", "📋 Meeting Archive", "🔍 Search Meetings"],
+            ["📤 Upload & Analyze", "🎙️ Live Recording", "📋 Meeting Archive", "🔍 Search Meetings"],
             index=0
         )
         
@@ -293,10 +299,344 @@ def main():
     # Main content area
     if tab == "📤 Upload & Analyze":
         upload_and_analyze_tab()
+    elif tab == "🎙️ Live Recording":
+        live_recording_tab()
     elif tab == "📋 Meeting Archive":
         meeting_archive_tab()
     else:
         search_meetings_tab()
+
+def live_recording_tab():
+    st.header("🎙️ Live Audio Recording")
+    
+    # Initialize audio recorder
+    if st.session_state.audio_recorder is None:
+        st.session_state.audio_recorder = AudioRecorder()
+    
+    recorder = st.session_state.audio_recorder
+    
+    # Recording method selection
+    st.subheader("Choose Recording Method")
+    
+    method_tabs = st.tabs(["🎙️ Microphone", "🔊 System Audio", "🌐 Virtual Meetings", "ℹ️ Instructions"])
+    
+    with method_tabs[0]:
+        microphone_recording_section(recorder)
+    
+    with method_tabs[1]:
+        system_audio_section()
+    
+    with method_tabs[2]:
+        virtual_meeting_section()
+    
+    with method_tabs[3]:
+        recording_instructions_section()
+
+def microphone_recording_section(recorder):
+    st.markdown("### Direct Microphone Recording")
+    st.info("🔒 **Privacy**: Audio is processed entirely on your device")
+    
+    # Check if audio is available
+    from utils.audio_recorder import AUDIO_AVAILABLE
+    if not AUDIO_AVAILABLE:
+        st.warning("🎙️ Direct microphone recording is not available in this web environment.")
+        st.info("""
+        **Alternative options for recording:**
+        
+        1. **Use Virtual Meeting Platform Recording** (see Virtual Meetings tab)
+        2. **Record locally and upload** using the Upload & Analyze tab
+        3. **Use browser-based recording tools** and then upload the file
+        """)
+        return
+    
+    # Device selection
+    devices = recorder.get_audio_devices()
+    
+    if not devices:
+        st.error("❌ No audio input devices found. Please check your microphone connections.")
+        return
+    
+    # Device selector
+    device_options = [f"{device['name']} ({device['channels']} channels)" for device in devices]
+    selected_device_idx = st.selectbox(
+        "Select Microphone",
+        range(len(device_options)),
+        format_func=lambda x: device_options[x],
+        help="Choose which microphone to record from"
+    )
+    
+    selected_device = devices[selected_device_idx]
+    
+    # Display device info
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Channels", selected_device['channels'])
+    with col2:
+        st.metric("Sample Rate", f"{selected_device['sample_rate']:.0f} Hz")
+    with col3:
+        if recorder.is_recording():
+            st.metric("Duration", f"{recorder.get_recording_duration():.1f}s")
+        else:
+            st.metric("Status", "Ready")
+    
+    # Meeting metadata for recording
+    col1, col2 = st.columns(2)
+    with col1:
+        meeting_title = st.text_input(
+            "Meeting Title", 
+            placeholder="e.g., Live Team Meeting",
+            key="live_meeting_title"
+        )
+    with col2:
+        meeting_date = st.date_input(
+            "Meeting Date", 
+            value=datetime.now().date(),
+            key="live_meeting_date"
+        )
+    
+    meeting_notes = st.text_area(
+        "Notes (Optional)", 
+        placeholder="Add context about this recording...",
+        key="live_meeting_notes"
+    )
+    
+    # Recording controls
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 1, 2])
+    
+    with col1:
+        if not recorder.is_recording():
+            if st.button("🔴 Start Recording", type="primary", disabled=not meeting_title):
+                if recorder.start_recording(selected_device['index']):
+                    st.success("🎙️ Recording started!")
+                    st.rerun()
+                else:
+                    st.error("❌ Failed to start recording")
+        else:
+            if st.button("⏹️ Stop Recording", type="secondary"):
+                audio_file = recorder.stop_recording()
+                if audio_file:
+                    st.session_state.recording_file = audio_file
+                    st.success("✅ Recording stopped!")
+                    st.rerun()
+                else:
+                    st.error("❌ Failed to stop recording")
+    
+    with col2:
+        if recorder.is_recording():
+            # Real-time duration display
+            duration = recorder.get_recording_duration()
+            st.markdown(f"**🔴 Recording: {duration:.1f}s**")
+            
+            # Auto-refresh every second while recording
+            time.sleep(1)
+            st.rerun()
+    
+    with col3:
+        if not meeting_title:
+            st.warning("⚠️ Please enter a meeting title to start recording")
+    
+    # Process recorded audio
+    if st.session_state.recording_file and not recorder.is_recording():
+        st.markdown("---")
+        st.subheader("Process Recording")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🚀 Transcribe & Analyze", type="primary"):
+                process_recorded_audio(
+                    st.session_state.recording_file,
+                    meeting_title,
+                    meeting_date,
+                    meeting_notes
+                )
+                
+        with col2:
+            if st.button("🗑️ Discard Recording"):
+                recorder.cleanup()
+                st.session_state.recording_file = None
+                st.success("Recording discarded")
+                st.rerun()
+
+def system_audio_section():
+    st.markdown("### System Audio Capture")
+    st.info("🔊 **Capture**: All audio playing on your computer (including meeting participants)")
+    
+    st.warning("""
+    **System audio capture requires additional setup:**
+    
+    **Windows:**
+    - Enable "Stereo Mix" in Recording devices
+    - Or use VB-Cable (Virtual Audio Cable)
+    
+    **macOS:**
+    - Install BlackHole or SoundFlower
+    - Configure as audio input device
+    
+    **Linux:**
+    - Use PulseAudio monitor device
+    - Configure loopback module
+    """)
+    
+    if st.button("🔧 Try System Audio Capture (Experimental)"):
+        st.info("This feature is under development. For now, please use:")
+        st.markdown("""
+        1. **Set your system to record system audio**
+        2. **Use the microphone recording above**
+        3. **Or record within your meeting platform and upload the file**
+        """)
+
+def virtual_meeting_section():
+    st.markdown("### Virtual Meeting Integration")
+    st.info("💬 **Integration**: Methods to capture audio from Zoom, Teams, Google Meet")
+    
+    # Meeting platform options
+    platform_options = {
+        "zoom": {
+            "name": "Zoom",
+            "icon": "🎥",
+            "methods": [
+                "Use Zoom's built-in recording feature",
+                "Enable 'Record to this computer'",
+                "Upload the recorded audio file"
+            ]
+        },
+        "teams": {
+            "name": "Microsoft Teams", 
+            "icon": "💼",
+            "methods": [
+                "Use Teams recording feature",
+                "Start recording during the meeting",
+                "Download and upload the audio file"
+            ]
+        },
+        "meet": {
+            "name": "Google Meet",
+            "icon": "🌐", 
+            "methods": [
+                "Use Google Meet recording (Google Workspace)",
+                "Or use browser-based screen recording",
+                "Upload the resulting audio file"
+            ]
+        },
+        "general": {
+            "name": "General Methods",
+            "icon": "🛠️",
+            "methods": [
+                "Use OBS Studio to record system audio",
+                "Use Audacity to record computer playback",
+                "Use browser extensions for tab audio recording"
+            ]
+        }
+    }
+    
+    selected_platform = st.selectbox(
+        "Select Meeting Platform",
+        options=list(platform_options.keys()),
+        format_func=lambda x: f"{platform_options[x]['icon']} {platform_options[x]['name']}"
+    )
+    
+    platform = platform_options[selected_platform]
+    
+    st.markdown(f"### {platform['icon']} {platform['name']} Recording")
+    
+    for i, method in enumerate(platform['methods'], 1):
+        st.markdown(f"{i}. {method}")
+    
+    st.markdown("---")
+    st.info("""
+    **After recording with any platform:**
+    1. Save/download the audio file
+    2. Go to the "📤 Upload & Analyze" tab
+    3. Upload your recorded file for analysis
+    """)
+
+def recording_instructions_section():
+    st.markdown("### 📖 Recording Methods Guide")
+    
+    instructions = get_recording_instructions()
+    
+    for method_key, method_info in instructions.items():
+        with st.expander(f"{method_info['title']}", expanded=False):
+            st.markdown(f"**{method_info['description']}**")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**✅ Pros:**")
+                for pro in method_info['pros']:
+                    st.markdown(f"• {pro}")
+            
+            with col2:
+                st.markdown("**⚠️ Cons:**")
+                for con in method_info['cons']:
+                    st.markdown(f"• {con}")
+            
+            st.markdown(f"**🎯 Best for:** {method_info['best_for']}")
+
+def process_recorded_audio(audio_file_path, title, date, notes):
+    """Process audio recorded from microphone"""
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    try:
+        # Step 1: Process audio
+        status_text.text("🎵 Processing recorded audio...")
+        progress_bar.progress(20)
+        
+        audio_info = services['audio'].process_audio(audio_file_path)
+        
+        # Step 2: Transcribe
+        status_text.text("🎯 Transcribing audio (this may take a while)...")
+        progress_bar.progress(30)
+        
+        transcript = services['transcription'].transcribe(audio_file_path)
+        progress_bar.progress(60)
+        
+        if not transcript or not transcript.strip():
+            st.error("❌ No speech detected in the recording. Please check your microphone settings.")
+            return
+        
+        # Step 3: AI Analysis
+        status_text.text("🤖 Analyzing transcript with AI...")
+        progress_bar.progress(70)
+        
+        analysis = st.session_state.ai_service.analyze_meeting(transcript)
+        progress_bar.progress(90)
+        
+        # Step 4: Store meeting
+        status_text.text("💾 Saving meeting data...")
+        
+        meeting_data = {
+            'id': datetime.now().isoformat(),
+            'title': title,
+            'date': str(date),
+            'notes': notes,
+            'duration': audio_info['duration'],
+            'file_size': audio_info['file_size'],
+            'transcript': transcript,
+            'analysis': analysis,
+            'created_at': datetime.now().isoformat(),
+            'source': 'live_recording'
+        }
+        
+        services['storage'].save_meeting(meeting_data)
+        progress_bar.progress(100)
+        status_text.text("✅ Recording processed successfully!")
+        
+        # Clean up
+        st.session_state.audio_recorder.cleanup()
+        st.session_state.recording_file = None
+        
+        # Display results
+        display_meeting_results(meeting_data)
+        
+        # Rerun to update sidebar stats
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"❌ Error processing recording: {str(e)}")
+        if st.session_state.audio_recorder:
+            st.session_state.audio_recorder.cleanup()
 
 def upload_and_analyze_tab():
     st.header("Upload Meeting Audio")

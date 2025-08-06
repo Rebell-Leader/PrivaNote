@@ -53,13 +53,15 @@ class AIAnalysisService:
             port = self.lm_studio_config.get('port', 1234)
             base_url = f"http://{host}:{port}/v1"
             
-            # LM Studio uses OpenAI-compatible API but doesn't need real API key
+            # LM Studio uses OpenAI-compatible API - use "lm-studio" as API key
             client = OpenAI(
-                api_key="lm-studio",  # Placeholder key
-                base_url=base_url
+                api_key="lm-studio",
+                base_url=base_url,
+                timeout=10.0  # Add timeout for better error handling
             )
             return client
-        except Exception:
+        except Exception as e:
+            st.error(f"Failed to initialize LM Studio client: {str(e)}")
             return None
             
     def _check_lm_studio_availability(self):
@@ -67,18 +69,26 @@ class AIAnalysisService:
         if not self.lm_studio_client:
             return False
         try:
-            # Test LM Studio connection by trying a minimal completion request
-            # This is more reliable than listing models, as a server can be running
-            # without any models loaded.
-            self.lm_studio_client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": "ping"}],
-                max_tokens=1
-            )
+            # First try to get available models to check connection
+            models_response = self.lm_studio_client.models.list()
+            
+            # If no models are loaded, return False
+            if not models_response.data:
+                return False
+                
+            # Check if our configured model is available
+            available_models = [model.id for model in models_response.data]
+            if self.model_name not in available_models:
+                # Try to use the first available model if configured model not found
+                if available_models:
+                    st.warning(f"Configured model '{self.model_name}' not found. Available models: {', '.join(available_models)}")
+                    return True
+                return False
+                
             return True
-        except Exception:
-            # If any exception occurs (e.g., connection error, API error), 
-            # assume the service is not available.
+        except Exception as e:
+            # Log the specific error for debugging
+            st.error(f"LM Studio connection test failed: {str(e)}")
             return False
         
     def set_provider(self, provider, model_name=None, lm_studio_config=None):
@@ -134,10 +144,19 @@ class AIAnalysisService:
                     'value': 'lm_studio',
                     'description': 'Local server with OpenAI-compatible API',
                     'privacy': 'Data processed on local LM Studio server',
-                    'models': available_models if available_models else ['google/gemma-3n-e4b']
+                    'models': available_models if available_models else ['No models loaded']
                 })
-            except Exception:
-                pass
+            except Exception as e:
+                # Still add the provider but indicate connection issues
+                host = self.lm_studio_config.get('host', 'localhost')
+                port = self.lm_studio_config.get('port', 1234)
+                providers.append({
+                    'name': f'LM Studio ({host}:{port}) - Connection Failed',
+                    'value': 'lm_studio',
+                    'description': 'Local server with OpenAI-compatible API',
+                    'privacy': 'Data processed on local LM Studio server',
+                    'models': [f'Connection error: {str(e)}']
+                })
                 
         if not providers:
             providers.append({
@@ -377,8 +396,23 @@ Respond with a JSON object containing:
             if not self.lm_studio_client:
                 return self._fallback_analysis(transcript)
             
+            # Get available models to use the correct model name
+            try:
+                models_response = self.lm_studio_client.models.list()
+                available_models = [model.id for model in models_response.data]
+                
+                # Use configured model if available, otherwise use first available
+                model_to_use = self.model_name
+                if self.model_name not in available_models and available_models:
+                    model_to_use = available_models[0]
+                    st.info(f"Using model '{model_to_use}' instead of configured '{self.model_name}'")
+                    
+            except Exception:
+                # If we can't get models list, try with configured model anyway
+                model_to_use = self.model_name
+            
             response = self.lm_studio_client.chat.completions.create(
-                model=self.model_name,
+                model=model_to_use,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}

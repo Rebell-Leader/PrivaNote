@@ -84,56 +84,112 @@ def main():
         # Get available providers
         available_providers = st.session_state.ai_service.get_available_providers()
         
-        if len(available_providers) > 1:
-            provider_options = {p['name']: p['value'] for p in available_providers}
-            
-            # Find current provider display name
-            current_provider_name = next(
-                (p['name'] for p in available_providers if p['value'] == st.session_state.ai_provider),
-                list(provider_options.keys())[0]
-            )
-            
-            selected_provider_name = st.selectbox(
-                "AI Provider",
-                options=list(provider_options.keys()),
-                index=list(provider_options.keys()).index(current_provider_name),
-                help="Choose between cloud-based or local AI processing"
-            )
-            
-            selected_provider = provider_options[selected_provider_name]
-            
-            # If provider changed, update
-            if selected_provider != st.session_state.ai_provider:
-                st.session_state.ai_provider = selected_provider
-                st.session_state.ai_service = AIAnalysisService(
-                    provider=selected_provider,
-                    model_name=st.session_state.ai_model
-                )
-                st.rerun()
-            
-            # Show provider info
-            current_provider_info = next(
-                (p for p in available_providers if p['value'] == st.session_state.ai_provider),
-                available_providers[0]
-            )
-            
-            st.info(
-                f"**{current_provider_info['name']}**\n\n"
-                f"{current_provider_info['description']}\n\n"
-                f"🔒 Privacy: {current_provider_info['privacy']}"
-            )
-            
-        else:
-            # Show status if only one or no providers available
-            if available_providers:
-                provider_info = available_providers[0]
-                st.info(
-                    f"**{provider_info['name']}**\n\n"
-                    f"{provider_info['description']}\n\n"
-                    f"🔒 Privacy: {provider_info['privacy']}"
-                )
+        # Always show provider selector with all possible options
+        all_provider_options = [
+            {
+                'name': 'OpenAI (Cloud) ☁️',
+                'value': 'openai',
+                'available': any(p['value'] == 'openai' for p in available_providers),
+                'description': 'High-quality analysis via OpenAI API',
+                'privacy': 'Transcript sent to OpenAI'
+            },
+            {
+                'name': 'Local Gemma (Ollama) 🏠',
+                'value': 'ollama', 
+                'available': any(p['value'] == 'ollama' for p in available_providers),
+                'description': 'Fully private local processing',
+                'privacy': 'Data never leaves your device'
+            },
+            {
+                'name': 'Basic Analysis (No AI) 🔧',
+                'value': 'fallback',
+                'available': True,
+                'description': 'Simple keyword-based analysis',
+                'privacy': 'Fully local'
+            }
+        ]
+        
+        # Create display options with status indicators
+        provider_display_options = []
+        provider_value_map = {}
+        
+        for option in all_provider_options:
+            if option['available']:
+                display_name = option['name']
             else:
-                st.warning("No AI providers available")
+                display_name = f"{option['name']} (Setup Required)"
+                
+            provider_display_options.append(display_name)
+            provider_value_map[display_name] = option
+        
+        # Find current selection
+        current_option = next(
+            (opt for opt in all_provider_options if opt['value'] == st.session_state.ai_provider),
+            all_provider_options[0]
+        )
+        
+        current_display_name = next(
+            (name for name, opt in provider_value_map.items() if opt['value'] == current_option['value']),
+            provider_display_options[0]
+        )
+        
+        # Provider selector (always visible)
+        selected_display_name = st.selectbox(
+            "AI Provider",
+            options=provider_display_options,
+            index=provider_display_options.index(current_display_name),
+            help="Choose your preferred AI processing method"
+        )
+        
+        selected_option = provider_value_map[selected_display_name]
+        
+        # Handle provider selection
+        if selected_option['available'] and selected_option['value'] != st.session_state.ai_provider:
+            st.session_state.ai_provider = selected_option['value']
+            st.session_state.ai_service = AIAnalysisService(
+                provider=selected_option['value'],
+                model_name=st.session_state.ai_model
+            )
+            st.rerun()
+        
+        # Show provider info and setup instructions
+        if selected_option['available']:
+            st.success(
+                f"✅ **{selected_option['name'].split(' (')[0]}** - Ready\n\n"
+                f"{selected_option['description']}\n\n"
+                f"🔒 Privacy: {selected_option['privacy']}"
+            )
+        elif selected_option['value'] == 'openai':
+            st.warning(
+                f"⚠️ **OpenAI (Cloud)** - Setup Required\n\n"
+                f"{selected_option['description']}\n\n"
+                f"🔒 Privacy: {selected_option['privacy']}\n\n"
+                f"**Setup:** Add OpenAI API key in Replit Secrets"
+            )
+            if st.button("ℹ️ How to add OpenAI API Key", key="openai_help"):
+                st.info("""
+                **To enable OpenAI analysis:**
+                1. Go to Replit Secrets (in sidebar)
+                2. Add key: `OPENAI_API_KEY`
+                3. Add your OpenAI API key as value
+                4. Restart the app
+                """)
+        elif selected_option['value'] == 'ollama':
+            st.info(
+                f"🏠 **Local Gemma (Ollama)** - Setup Required\n\n"
+                f"{selected_option['description']}\n\n"
+                f"🔒 Privacy: {selected_option['privacy']}\n\n"
+                f"**Setup:** Install Ollama locally (see Privacy section)"
+            )
+            if st.button("🏠 How to setup Local Ollama", key="ollama_help"):
+                st.info("""
+                **For maximum privacy with local processing:**
+                1. Download this app's code
+                2. Install Ollama locally from ollama.com
+                3. Run: `ollama pull gemma3`
+                4. Run this app locally with `streamlit run app.py`
+                """)
+        
         
         st.markdown("---")
         st.markdown("### Quick Stats")

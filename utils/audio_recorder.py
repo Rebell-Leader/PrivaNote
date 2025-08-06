@@ -12,13 +12,13 @@ try:
     import sounddevice as sd
     import numpy as np
     AUDIO_AVAILABLE = True
+    AUDIO_ERROR = None
 except (ImportError, OSError) as e:
     AUDIO_AVAILABLE = False
+    AUDIO_ERROR = str(e)
     # Type stubs for when libraries are not available
     sd = None  # type: ignore
     np = None  # type: ignore
-    st.warning(f"🎙️ Direct microphone recording not available in this environment: {e}")
-    st.info("💡 Use the Virtual Meeting integration methods instead!")
 
 class AudioRecorder:
     """Handle real-time audio recording from microphone"""

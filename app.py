@@ -24,12 +24,18 @@ def get_services():
     return {
         'audio': AudioProcessor(),
         'transcription': TranscriptionService(),
-        'analysis': AIAnalysisService(),
         'storage': StorageService(),
         'export': ExportService()
     }
 
+# Initialize cached services
 services = get_services()
+
+# Initialize AI service separately for provider switching
+if 'ai_provider' not in st.session_state:
+    st.session_state.ai_provider = 'openai'
+if 'ai_model' not in st.session_state:
+    st.session_state.ai_model = 'gpt-4o'
 
 # Initialize session state
 if 'meetings' not in st.session_state:
@@ -46,12 +52,12 @@ def main():
     with st.expander("🛡️ Privacy & Security Information", expanded=False):
         st.markdown("""
         **Your Privacy is Our Priority:**
-        - ✅ Audio transcription processed locally using Whisper
-        - ✅ All meeting data stored locally in your browser
-        - ✅ AI analysis uses OpenAI API (external service) for text processing only
-        - ✅ No audio files sent to external services
-        - ✅ No persistent server-side storage
-        - ⚠️ Clear browser data to remove all stored meetings
+        - ✅ **Audio transcription**: Processed locally using Whisper
+        - ✅ **Data storage**: All meeting data stored locally in your browser
+        - 🔄 **AI analysis**: Choose between OpenAI (cloud) or local Gemma models
+        - ✅ **Audio privacy**: No audio files sent to external services
+        - ✅ **No tracking**: No persistent server-side storage
+        - ⚠️ **Data removal**: Clear browser data to remove all stored meetings
         """)
     
     # Sidebar navigation
@@ -62,6 +68,72 @@ def main():
             ["📤 Upload & Analyze", "📋 Meeting Archive", "🔍 Search Meetings"],
             index=0
         )
+        
+        st.markdown("---")
+        
+        # AI Provider Selection
+        st.markdown("### AI Configuration")
+        
+        # Initialize AI service if not exists
+        if 'ai_service' not in st.session_state:
+            st.session_state.ai_service = AIAnalysisService(
+                provider=st.session_state.ai_provider,
+                model_name=st.session_state.ai_model
+            )
+        
+        # Get available providers
+        available_providers = st.session_state.ai_service.get_available_providers()
+        
+        if len(available_providers) > 1:
+            provider_options = {p['name']: p['value'] for p in available_providers}
+            
+            # Find current provider display name
+            current_provider_name = next(
+                (p['name'] for p in available_providers if p['value'] == st.session_state.ai_provider),
+                list(provider_options.keys())[0]
+            )
+            
+            selected_provider_name = st.selectbox(
+                "AI Provider",
+                options=list(provider_options.keys()),
+                index=list(provider_options.keys()).index(current_provider_name),
+                help="Choose between cloud-based or local AI processing"
+            )
+            
+            selected_provider = provider_options[selected_provider_name]
+            
+            # If provider changed, update
+            if selected_provider != st.session_state.ai_provider:
+                st.session_state.ai_provider = selected_provider
+                st.session_state.ai_service = AIAnalysisService(
+                    provider=selected_provider,
+                    model_name=st.session_state.ai_model
+                )
+                st.rerun()
+            
+            # Show provider info
+            current_provider_info = next(
+                (p for p in available_providers if p['value'] == st.session_state.ai_provider),
+                available_providers[0]
+            )
+            
+            st.info(
+                f"**{current_provider_info['name']}**\n\n"
+                f"{current_provider_info['description']}\n\n"
+                f"🔒 Privacy: {current_provider_info['privacy']}"
+            )
+            
+        else:
+            # Show status if only one or no providers available
+            if available_providers:
+                provider_info = available_providers[0]
+                st.info(
+                    f"**{provider_info['name']}**\n\n"
+                    f"{provider_info['description']}\n\n"
+                    f"🔒 Privacy: {provider_info['privacy']}"
+                )
+            else:
+                st.warning("No AI providers available")
         
         st.markdown("---")
         st.markdown("### Quick Stats")
@@ -82,6 +154,12 @@ def main():
 
 def upload_and_analyze_tab():
     st.header("Upload Meeting Audio")
+    
+    # Get current AI service from session state
+    ai_service = st.session_state.get('ai_service')
+    if not ai_service:
+        ai_service = AIAnalysisService()
+        st.session_state.ai_service = ai_service
     
     # File upload
     uploaded_file = st.file_uploader(
@@ -138,7 +216,7 @@ def process_meeting(uploaded_file, title, date, notes):
         status_text.text("🤖 Analyzing transcript with AI...")
         progress_bar.progress(70)
         
-        analysis = services['analysis'].analyze_meeting(transcript)
+        analysis = ai_service.analyze_meeting(transcript)
         progress_bar.progress(90)
         
         # Step 5: Store meeting

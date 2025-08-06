@@ -34,7 +34,7 @@
 ### Option 2: Local Installation (Maximum Privacy)
 
 #### Prerequisites
-- Python 3.11 or higher
+- Python 3.11 or 3.12 (Python 3.13 is not supported due to the removal of the `audioop` module)
 - Git
 
 #### Installation Steps
@@ -46,7 +46,7 @@
    ```
 
 2. **Install dependencies**
-   
+
    **Using uv (recommended):**
    ```bash
    pip install uv
@@ -80,7 +80,7 @@ To enable completely local AI processing with Gemma 3n models:
    ```bash
    # Recommended 4B model (balanced performance/quality)
    ollama pull gemma3
-   
+
    # Alternative options:
    ollama pull gemma3:1b     # Faster, smaller (1.7GB)
    ollama pull gemma3:27b    # Highest quality (requires 16GB+ RAM)
@@ -124,10 +124,11 @@ To enable completely local AI processing with Gemma 3n models:
 - **PyTorch** - ML framework with CPU/GPU optimization
 
 ### Privacy by Design
-- **Local-first processing**: Audio transcription happens on your device
-- **Configurable AI providers**: Choose your privacy level
-- **No persistent storage**: Data only in browser session
-- **Export control**: You decide what data to keep
+
+- **Local-first processing**: Audio transcription happens on your device.
+- **Configurable AI providers**: You choose your desired level of privacy.
+- **Ephemeral by Default**: Meeting data is held only in your browser's session memory and is discarded when you close the tab.
+- **User-Controlled Persistence**: You have full control over what data to save, via manual exports to Markdown or other formats.
 
 ## 🎯 Use Cases
 
@@ -137,7 +138,7 @@ To enable completely local AI processing with Gemma 3n models:
 - **Client Calls**: Track requirements and commitments
 - **Team Standups**: Document progress and blockers
 
-### 🚀 For Founders & Entrepreneurs  
+### 🚀 For Founders & Entrepreneurs
 - **Investor Meetings**: Capture feedback and next steps
 - **Team Updates**: Track project progress and decisions
 - **Customer Discovery**: Organize insights and pain points
@@ -243,7 +244,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **OpenAI** - Whisper model and API services
 - **Google** - Gemma 3n models and research
-- **Ollama** - Local model serving platform  
+- **Ollama** - Local model serving platform
 - **Streamlit** - Web application framework
 - **faster-whisper** - Optimized Whisper implementation
 

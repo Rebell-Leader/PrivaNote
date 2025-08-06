@@ -4,6 +4,7 @@ import wave
 import threading
 import time
 from datetime import datetime
+from typing import List, Dict, Optional, Any
 import streamlit as st
 
 # Try to import audio libraries - graceful fallback if not available
@@ -13,6 +14,9 @@ try:
     AUDIO_AVAILABLE = True
 except (ImportError, OSError) as e:
     AUDIO_AVAILABLE = False
+    # Type stubs for when libraries are not available
+    sd = None  # type: ignore
+    np = None  # type: ignore
     st.warning(f"🎙️ Direct microphone recording not available in this environment: {e}")
     st.info("💡 Use the Virtual Meeting integration methods instead!")
 
@@ -27,22 +31,29 @@ class AudioRecorder:
         self.stream = None
         self.temp_file = None
         
-    def get_audio_devices(self):
+    def get_audio_devices(self) -> List[Dict[str, Any]]:
         """Get list of available audio input devices"""
-        if not AUDIO_AVAILABLE:
+        if not AUDIO_AVAILABLE or sd is None:
             return []
             
         try:
+            if sd is None:
+                return []
             devices = sd.query_devices()
             input_devices = []
             
             for i, device in enumerate(devices):
-                if hasattr(device, 'max_input_channels') and device.max_input_channels > 0:
+                # Check if device has input capabilities
+                max_inputs = getattr(device, 'max_input_channels', 0)
+                if max_inputs and max_inputs > 0:
+                    device_name = getattr(device, 'name', f'Device {i}')
+                    default_sr = getattr(device, 'default_samplerate', 44100)
+                    
                     input_devices.append({
                         'index': i,
-                        'name': device.name,
-                        'channels': int(device.max_input_channels),
-                        'sample_rate': int(device.default_samplerate)
+                        'name': str(device_name),
+                        'channels': int(max_inputs),
+                        'sample_rate': int(default_sr)
                     })
             
             return input_devices
@@ -50,9 +61,9 @@ class AudioRecorder:
             st.error(f"Error getting audio devices: {e}")
             return []
     
-    def start_recording(self, device_id=None):
+    def start_recording(self, device_id=None) -> bool:
         """Start recording audio from microphone"""
-        if not AUDIO_AVAILABLE:
+        if not AUDIO_AVAILABLE or sd is None:
             st.error("Audio recording not available in this environment")
             return False
             
@@ -70,6 +81,10 @@ class AudioRecorder:
                     self.audio_data.append(indata.copy())
             
             # Start the audio stream
+            if np is None or sd is None:
+                st.error("Audio libraries not available for audio processing")
+                return False
+                
             self.stream = sd.InputStream(
                 device=device_id,
                 channels=self.channels,
@@ -86,7 +101,7 @@ class AudioRecorder:
             self.recording = False
             return False
     
-    def stop_recording(self):
+    def stop_recording(self) -> Optional[str]:
         """Stop recording and save to temporary file"""
         if not self.recording:
             return None
@@ -102,7 +117,7 @@ class AudioRecorder:
             if not self.audio_data:
                 return None
             
-            if not AUDIO_AVAILABLE:
+            if not AUDIO_AVAILABLE or np is None:
                 return None
                 
             # Combine all audio chunks
@@ -157,24 +172,32 @@ class SystemAudioCapture:
         self.recording = False
         self.audio_data = []
         
-    def get_system_audio_devices(self):
+    def get_system_audio_devices(self) -> List[Dict[str, Any]]:
         """Get system audio output devices that can be captured"""
-        if not AUDIO_AVAILABLE:
+        if not AUDIO_AVAILABLE or sd is None:
             return []
             
         try:
+            if sd is None:
+                return []
             devices = sd.query_devices()
             output_devices = []
             
             for i, device in enumerate(devices):
-                if hasattr(device, 'max_output_channels') and device.max_output_channels > 0:
+                # Check if device has output capabilities
+                max_outputs = getattr(device, 'max_output_channels', 0)
+                if max_outputs and max_outputs > 0:
+                    device_name = getattr(device, 'name', f'Device {i}')
+                    default_sr = getattr(device, 'default_samplerate', 44100)
+                    
                     # Look for loopback or monitor devices
-                    if any(keyword in device.name.lower() for keyword in ['loopback', 'monitor', 'stereo mix', 'what u hear']):
+                    device_name_str = str(device_name)
+                    if any(keyword in device_name_str.lower() for keyword in ['loopback', 'monitor', 'stereo mix', 'what u hear']):
                         output_devices.append({
                             'index': i,
-                            'name': device.name,
-                            'channels': int(device.max_output_channels),
-                            'sample_rate': int(device.default_samplerate)
+                            'name': device_name_str,
+                            'channels': int(max_outputs),
+                            'sample_rate': int(default_sr)
                         })
             
             return output_devices

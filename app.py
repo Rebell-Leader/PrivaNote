@@ -736,7 +736,7 @@ def process_meeting(uploaded_file, title, date, notes):
         
     except Exception as e:
         st.error(f"❌ Error processing meeting: {str(e)}")
-        if 'temp_path' in locals():
+        if 'temp_path' in locals() and temp_path:
             try:
                 os.unlink(temp_path)
             except:

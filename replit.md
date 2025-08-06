@@ -84,7 +84,27 @@ Vision: Cross-platform, local AI meeting assistant using Gemma 3n E4B and Whispe
 - **datetime**: Timestamp management for meeting records
 
 ### System Requirements
-- **Python Environment**: Compatible with Streamlit deployment
-- **Audio Codecs**: Support for multiple audio format processing
-- **Model Storage**: Local caching for Whisper models
+- **Python Environment**: Python 3.11+ with Streamlit deployment
+- **Audio Codecs**: Support for WAV, MP3, MP4, M4A, FLAC, OGG formats
+- **Model Storage**: Local caching for Whisper models (auto-downloaded)
 - **Browser Compatibility**: Modern browser for Streamlit interface
+- **Optional**: Ollama for local AI processing
+- **Optional**: OpenAI API key for cloud analysis
+
+### Documentation Structure
+- **README.md**: Comprehensive setup and usage guide with privacy modes
+- **SETUP.md**: Detailed installation instructions for multiple methods (uv, pip, direct)
+- **replit.md**: Technical architecture and project memory
+- **Streamlit Config**: Optimized deployment settings in .streamlit/config.toml
+
+## Recent Changes
+
+**August 2025 - Documentation & Dual-Mode AI Complete**
+- ✅ Created comprehensive README.md with correct Streamlit setup instructions
+- ✅ Added SETUP.md with multiple installation methods (uv, pip, direct)
+- ✅ Implemented dual-mode AI integration (OpenAI + Ollama/Gemma 3n E4B)
+- ✅ Enhanced CPU/non-CUDA device support for Whisper with automatic fallbacks
+- ✅ Added interactive provider selection UI in sidebar with status indicators
+- ✅ Improved privacy options with complete local processing capability
+- ✅ Fixed AI Configuration interface with clickable dropdown and help buttons
+- ✅ Added comprehensive documentation for different deployment scenarios

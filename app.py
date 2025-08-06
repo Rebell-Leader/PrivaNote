@@ -36,6 +36,8 @@ if 'ai_provider' not in st.session_state:
     st.session_state.ai_provider = 'openai'
 if 'ai_model' not in st.session_state:
     st.session_state.ai_model = 'gpt-4o'
+if 'lm_studio_config' not in st.session_state:
+    st.session_state.lm_studio_config = {'host': 'localhost', 'port': 1234, 'model': 'google/gemma-3n-e4b'}
 
 # Initialize session state
 if 'meetings' not in st.session_state:
@@ -78,7 +80,8 @@ def main():
         if 'ai_service' not in st.session_state:
             st.session_state.ai_service = AIAnalysisService(
                 provider=st.session_state.ai_provider,
-                model_name=st.session_state.ai_model
+                model_name=st.session_state.ai_model,
+                lm_studio_config=st.session_state.lm_studio_config
             )
         
         # Get available providers
@@ -99,6 +102,13 @@ def main():
                 'available': any(p['value'] == 'ollama' for p in available_providers),
                 'description': 'Fully private local processing',
                 'privacy': 'Data never leaves your device'
+            },
+            {
+                'name': 'LM Studio (Local Server) 🖥️',
+                'value': 'lm_studio',
+                'available': any(p['value'] == 'lm_studio' for p in available_providers),
+                'description': 'OpenAI-compatible local server',
+                'privacy': 'Data processed on local LM Studio server'
             },
             {
                 'name': 'Basic Analysis (No AI) 🔧',
@@ -148,7 +158,8 @@ def main():
             st.session_state.ai_provider = selected_option['value']
             st.session_state.ai_service = AIAnalysisService(
                 provider=selected_option['value'],
-                model_name=st.session_state.ai_model
+                model_name=st.session_state.ai_model,
+                lm_studio_config=st.session_state.lm_studio_config
             )
             st.rerun()
         
@@ -188,6 +199,85 @@ def main():
                 2. Install Ollama locally from ollama.com
                 3. Run: `ollama pull gemma3`
                 4. Run this app locally with `streamlit run app.py`
+                """)
+        elif selected_option['value'] == 'lm_studio':
+            st.warning(
+                f"⚠️ **LM Studio (Local Server)** - Setup Required\n\n"
+                f"{selected_option['description']}\n\n"
+                f"🔒 Privacy: {selected_option['privacy']}\n\n"
+                f"**Setup:** Configure and start LM Studio server"
+            )
+            
+            # LM Studio Configuration
+            st.markdown("**LM Studio Configuration:**")
+            col1, col2 = st.columns(2)
+            with col1:
+                lm_host = st.text_input(
+                    "Host/IP Address", 
+                    value=st.session_state.lm_studio_config['host'],
+                    help="LM Studio server IP address (e.g., localhost, 172.28.0.1)"
+                )
+            with col2:
+                lm_port = st.number_input(
+                    "Port", 
+                    value=st.session_state.lm_studio_config['port'],
+                    min_value=1000,
+                    max_value=65535,
+                    help="LM Studio server port (default: 1234)"
+                )
+            
+            lm_model = st.text_input(
+                "Model Name", 
+                value=st.session_state.lm_studio_config['model'],
+                help="LM Studio model name (e.g., google/gemma-3n-e4b)"
+            )
+            
+            # Update configuration
+            new_config = {'host': lm_host, 'port': lm_port, 'model': lm_model}
+            if new_config != st.session_state.lm_studio_config:
+                st.session_state.lm_studio_config = new_config
+                st.session_state.ai_service = AIAnalysisService(
+                    provider=st.session_state.ai_provider,
+                    model_name=lm_model,
+                    lm_studio_config=new_config
+                )
+                st.rerun()
+            
+            if st.button("🔄 Test Connection", key="lm_studio_test"):
+                with st.spinner("Testing LM Studio connection..."):
+                    test_service = AIAnalysisService(
+                        provider='lm_studio',
+                        model_name=lm_model,
+                        lm_studio_config=new_config
+                    )
+                    if test_service.lm_studio_available:
+                        st.success(f"✅ Connected to LM Studio at {lm_host}:{lm_port}")
+                    else:
+                        st.error(f"❌ Cannot connect to LM Studio at {lm_host}:{lm_port}")
+            
+            if st.button("ℹ️ How to setup LM Studio", key="lm_studio_help"):
+                st.info("""
+                **LM Studio Setup Instructions:**
+                
+                1. **Download LM Studio:**
+                   - Visit: https://lmstudio.ai
+                   - Download and install for your platform
+                
+                2. **Load a Gemma model:**
+                   - In LM Studio, go to "Discover" tab
+                   - Search for "gemma" and download a model
+                   - Recommended: google/gemma-3n-e4b or similar
+                
+                3. **Start Local Server:**
+                   - Go to "Local Server" tab in LM Studio
+                   - Select your downloaded model
+                   - Click "Start Server" (default port: 1234)
+                
+                4. **Configure PrivaNote:**
+                   - Set Host/IP (localhost for same machine)
+                   - Set Port (default: 1234)
+                   - Set Model Name (e.g., google/gemma-3n-e4b)
+                   - Click "Test Connection"
                 """)
         
         
@@ -272,7 +362,7 @@ def process_meeting(uploaded_file, title, date, notes):
         status_text.text("🤖 Analyzing transcript with AI...")
         progress_bar.progress(70)
         
-        analysis = ai_service.analyze_meeting(transcript)
+        analysis = st.session_state.ai_service.analyze_meeting(transcript)
         progress_bar.progress(90)
         
         # Step 5: Store meeting
@@ -295,7 +385,7 @@ def process_meeting(uploaded_file, title, date, notes):
         status_text.text("✅ Meeting processed successfully!")
         
         # Clean up temp file
-        if 'temp_path' in locals():
+        if temp_path and os.path.exists(temp_path):
             os.unlink(temp_path)
         
         # Display results

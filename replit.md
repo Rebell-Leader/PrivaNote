@@ -40,9 +40,12 @@ Vision: Cross-platform, local AI meeting assistant using Gemma 3n E4B and Whispe
 - **Language Support**: Automatic language detection with manual override capability
 
 ### AI Analysis System
-- **Current Implementation**: OpenAI API integration (gpt-4o) for comprehensive meeting analysis
-- **Future Plans**: Transition to local Gemma 3n E4B model for complete privacy
-- **API Configuration**: Uses OPENAI_API_KEY environment variable
+- **Triple-Mode Architecture**: Three AI processing options for different privacy and performance needs
+  - **OpenAI (Cloud)**: High-quality cloud analysis via gpt-4o API
+  - **Ollama (Local)**: Privacy-first local processing with Gemma 3n models
+  - **LM Studio (Local Server)**: OpenAI-compatible local server with custom configuration
+- **API Configuration**: Uses OPENAI_API_KEY environment variable for cloud mode
+- **LM Studio Integration**: Configurable host/port/model with real-time connection testing
 - **Analysis Capabilities**: 
   - Meeting summarization
   - Action item extraction
@@ -50,7 +53,7 @@ Vision: Cross-platform, local AI meeting assistant using Gemma 3n E4B and Whispe
   - Topic classification
   - Participant identification
   - Next steps generation
-- **Fallback Mechanism**: Basic analysis when AI services unavailable
+- **Fallback Mechanism**: Basic keyword analysis when AI services unavailable
 
 ### Data Storage Strategy
 - **Local-First**: All data stored in browser session state
@@ -67,8 +70,9 @@ Vision: Cross-platform, local AI meeting assistant using Gemma 3n E4B and Whispe
 
 ### AI Models and Services
 - **faster-whisper**: Local speech-to-text transcription model
-- **OpenAI API**: Current AI analysis service (optional, requires API key)
-- **Gemma 3n E4B**: Planned local AI model for privacy-first analysis
+- **OpenAI API**: Cloud AI analysis service (optional, requires API key)
+- **Ollama + Gemma 3n**: Local AI model integration for privacy-first analysis
+- **LM Studio**: Local server with OpenAI-compatible API endpoints for custom model hosting
 
 ### Audio Processing
 - **pydub**: Audio file manipulation and format conversion
@@ -89,6 +93,7 @@ Vision: Cross-platform, local AI meeting assistant using Gemma 3n E4B and Whispe
 - **Model Storage**: Local caching for Whisper models (auto-downloaded)
 - **Browser Compatibility**: Modern browser for Streamlit interface
 - **Optional**: Ollama for local AI processing
+- **Optional**: LM Studio for local server-based AI processing
 - **Optional**: OpenAI API key for cloud analysis
 
 ### Documentation Structure
@@ -99,12 +104,14 @@ Vision: Cross-platform, local AI meeting assistant using Gemma 3n E4B and Whispe
 
 ## Recent Changes
 
-**August 2025 - Documentation & Dual-Mode AI Complete**
+**August 2025 - Triple-Mode AI Architecture Complete**
 - ✅ Created comprehensive README.md with correct Streamlit setup instructions
 - ✅ Added SETUP.md with multiple installation methods (uv, pip, direct)
-- ✅ Implemented dual-mode AI integration (OpenAI + Ollama/Gemma 3n E4B)
+- ✅ Implemented triple-mode AI integration (OpenAI + Ollama + LM Studio)
+- ✅ Added LM Studio integration with configurable host/port/model settings
 - ✅ Enhanced CPU/non-CUDA device support for Whisper with automatic fallbacks
-- ✅ Added interactive provider selection UI in sidebar with status indicators
-- ✅ Improved privacy options with complete local processing capability
+- ✅ Added interactive provider selection UI with real-time connection testing
+- ✅ Improved privacy options with three levels of local processing
 - ✅ Fixed AI Configuration interface with clickable dropdown and help buttons
-- ✅ Added comprehensive documentation for different deployment scenarios
+- ✅ Added comprehensive documentation and setup guides for all AI providers
+- ✅ Implemented OpenAI-compatible API integration for LM Studio servers

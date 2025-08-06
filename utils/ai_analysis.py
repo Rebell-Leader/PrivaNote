@@ -11,16 +11,21 @@ except ImportError:
 class AIAnalysisService:
     """Handle AI-powered analysis of meeting transcripts with dual-mode support"""
     
-    def __init__(self, provider='openai', model_name=None):
+    def __init__(self, provider='openai', model_name=None, lm_studio_config=None):
         self.provider = provider
         self.model_name = model_name or self._get_default_model()
+        self.lm_studio_config = lm_studio_config or {'host': 'localhost', 'port': 1234}
         self.openai_client = self._initialize_openai_client()
         self.ollama_available = self._check_ollama_availability()
+        self.lm_studio_client = self._initialize_lm_studio_client()
+        self.lm_studio_available = self._check_lm_studio_availability()
         
     def _get_default_model(self):
         """Get default model for the selected provider"""
         if self.provider == 'ollama':
             return 'gemma3'
+        elif self.provider == 'lm_studio':
+            return 'google/gemma-3n-e4b'
         return 'gpt-4o'
         
     def _check_ollama_availability(self):
@@ -41,13 +46,45 @@ class AIAnalysisService:
             return None
         return OpenAI(api_key=api_key)
         
-    def set_provider(self, provider, model_name=None):
-        """Switch between OpenAI and Ollama providers"""
+    def _initialize_lm_studio_client(self):
+        """Initialize LM Studio client (OpenAI-compatible)"""
+        try:
+            host = self.lm_studio_config.get('host', 'localhost')
+            port = self.lm_studio_config.get('port', 1234)
+            base_url = f"http://{host}:{port}/v1"
+            
+            # LM Studio uses OpenAI-compatible API but doesn't need real API key
+            client = OpenAI(
+                api_key="lm-studio",  # Placeholder key
+                base_url=base_url
+            )
+            return client
+        except Exception:
+            return None
+            
+    def _check_lm_studio_availability(self):
+        """Check if LM Studio is available and running"""
+        if not self.lm_studio_client:
+            return False
+        try:
+            # Test LM Studio connection by calling /v1/models
+            models = self.lm_studio_client.models.list()
+            return len(models.data) > 0
+        except Exception:
+            return False
+        
+    def set_provider(self, provider, model_name=None, lm_studio_config=None):
+        """Switch between OpenAI, Ollama, and LM Studio providers"""
         self.provider = provider
         if model_name:
             self.model_name = model_name
         else:
             self.model_name = self._get_default_model()
+            
+        if lm_studio_config:
+            self.lm_studio_config = lm_studio_config
+            self.lm_studio_client = self._initialize_lm_studio_client()
+            self.lm_studio_available = self._check_lm_studio_availability()
             
     def get_available_providers(self):
         """Get list of available AI providers"""
@@ -77,6 +114,23 @@ class AIAnalysisService:
             except Exception:
                 pass
                 
+        if self.lm_studio_available:
+            try:
+                # Get available LM Studio models
+                models_response = self.lm_studio_client.models.list()
+                available_models = [model.id for model in models_response.data]
+                host = self.lm_studio_config.get('host', 'localhost')
+                port = self.lm_studio_config.get('port', 1234)
+                providers.append({
+                    'name': f'LM Studio ({host}:{port})',
+                    'value': 'lm_studio',
+                    'description': 'Local server with OpenAI-compatible API',
+                    'privacy': 'Data processed on local LM Studio server',
+                    'models': available_models if available_models else ['google/gemma-3n-e4b']
+                })
+            except Exception:
+                pass
+                
         if not providers:
             providers.append({
                 'name': 'Basic Analysis (No AI)',
@@ -102,6 +156,8 @@ class AIAnalysisService:
             return self._analyze_with_openai(transcript)
         elif self.provider == 'ollama' and self.ollama_available:
             return self._analyze_with_ollama(transcript)
+        elif self.provider == 'lm_studio' and self.lm_studio_available:
+            return self._analyze_with_lm_studio(transcript)
         else:
             return self._fallback_analysis(transcript)
             
@@ -139,6 +195,24 @@ class AIAnalysisService:
             }
         except Exception as e:
             st.error(f"Local AI analysis failed: {str(e)}")
+            return self._fallback_analysis(transcript)
+            
+    def _analyze_with_lm_studio(self, transcript):
+        """Analyze using LM Studio (OpenAI-compatible API)"""
+        try:
+            analysis_result = self._generate_lm_studio_analysis(transcript)
+            return {
+                'summary': analysis_result.get('summary', ''),
+                'action_items': analysis_result.get('action_items', []),
+                'key_decisions': analysis_result.get('key_decisions', []),
+                'topics_discussed': analysis_result.get('topics_discussed', []),
+                'participants': analysis_result.get('participants', []),
+                'next_steps': analysis_result.get('next_steps', []),
+                'ai_confidence': analysis_result.get('confidence', 0.8),
+                'provider': f'LM Studio ({self.model_name})'
+            }
+        except Exception as e:
+            st.error(f"LM Studio analysis failed: {str(e)}")
             return self._fallback_analysis(transcript)
     
     def _generate_ollama_analysis(self, transcript):
@@ -260,6 +334,69 @@ Respond with a JSON object containing:
             return self._fallback_analysis(transcript)
         except Exception as e:
             st.error(f"OpenAI API error: {str(e)}")
+            return self._fallback_analysis(transcript)
+    
+    def _generate_lm_studio_analysis(self, transcript):
+        """Generate comprehensive meeting analysis using LM Studio"""
+        
+        system_prompt = """You are an expert meeting analyst. Analyze the provided meeting transcript and extract key information in a structured JSON format. Focus on being accurate and concise.
+
+Your analysis should include:
+1. A clear, concise summary of the meeting
+2. Specific action items with clear ownership when mentioned
+3. Key decisions that were made
+4. Main topics discussed
+5. Identified participants (if names are mentioned)
+6. Next steps or follow-up items
+
+Be precise and only include information that is clearly stated or strongly implied in the transcript. If something is unclear, don't make assumptions."""
+
+        user_prompt = f"""Please analyze this meeting transcript and provide a comprehensive analysis:
+
+TRANSCRIPT:
+{transcript}
+
+Respond with a JSON object containing:
+- summary: A concise 2-3 sentence summary of the meeting
+- action_items: Array of specific action items (what needs to be done)
+- key_decisions: Array of important decisions that were made
+- topics_discussed: Array of main topics/subjects discussed
+- participants: Array of participant names mentioned in the transcript
+- next_steps: Array of follow-up actions or next meeting items
+- confidence: A number between 0 and 1 indicating your confidence in the analysis"""
+
+        try:
+            if not self.lm_studio_client:
+                return self._fallback_analysis(transcript)
+            
+            response = self.lm_studio_client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3,
+                max_tokens=1500
+            )
+            
+            content = response.choices[0].message.content
+            if content:
+                # Try to extract JSON from response
+                import re
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(0)
+                    result = json.loads(json_str)
+                    return result
+                # If no JSON found, try parsing the whole response
+                return json.loads(content)
+            return {}
+            
+        except json.JSONDecodeError as e:
+            st.error(f"Failed to parse LM Studio response: {str(e)}")
+            return self._fallback_analysis(transcript)
+        except Exception as e:
+            st.error(f"LM Studio API error: {str(e)}")
             return self._fallback_analysis(transcript)
     
     def generate_summary(self, transcript, max_length=200):
